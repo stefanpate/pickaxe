@@ -88,9 +88,11 @@ mongo_uri.csv
 local_data/
 .vscode/
 .DS_Store
+.venv
 
 # MS2
 msrb-fragmenter/
 
 # eq
 compounds.sqlite
+
