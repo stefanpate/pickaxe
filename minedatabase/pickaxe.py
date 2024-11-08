@@ -1571,6 +1571,7 @@ class Pickaxe:
             "reactions": self.reactions,
             "operators": self.operators,
             "targets": self.targets,
+            "generations": self.generation
         }
 
         with open(fname, "wb") as f:
@@ -1594,6 +1595,7 @@ class Pickaxe:
             self.reactions = pickle_d["reactions"]
             self.operators = pickle_d["operators"]
             self.targets = pickle_d["targets"]
+            self.generation = pickle_d["generation"]
             self.target_smiles = [target["SMILES"] for target in self.targets.values()]
 
             for key in pickle_d:
