@@ -1570,6 +1570,7 @@ class Pickaxe:
             "compounds": self.compounds,
             "reactions": self.reactions,
             "operators": self.operators,
+            "coreactants": {k: [MolToSmiles(v[0]), v[1]] for k, v in self.coreactants.items()},
             "targets": self.targets,
             "generations": self.generation - 1 if self.filter_after_final_gen else self.generation
         }
@@ -1594,6 +1595,7 @@ class Pickaxe:
             self.compounds = pickle_d["compounds"]
             self.reactions = pickle_d["reactions"]
             self.operators = pickle_d["operators"]
+            self.coreactants = {k: tuple([MolFromSmiles(v[0]), v[1]]) for k, v in pickle_d['coreactants'].items()}
             self.targets = pickle_d["targets"]
             self.generation = pickle_d["generations"]
             self.target_smiles = [target["SMILES"] for target in self.targets.values()]
