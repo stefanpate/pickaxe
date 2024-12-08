@@ -118,28 +118,9 @@ def _run_reaction(
         return cpd_returns, atom_counts
 
     def _gen_compound(mol):
-        rkl.DisableLog("rdApp.*")
-        try:
-            if explicit_h:
-                mol = RemoveHs(mol)
+        mol_smiles = _m2s(mol)
 
-            # resolve potential tautomers and choose first one
-            mol_smiles = MolToSmiles(mol, True)
-            if "n" in mol_smiles:
-                mol_smiles = utils.postsanitize_smiles([mol_smiles])[0][0]
-                mol = MolFromSmiles(mol_smiles)
-
-            SanitizeMol(mol)
-
-        # TODO: logger
-        # Get lots of "Explicit valence greater than permitted" errors here
-        # This is for predicted compounds that are infeasible, so we throw them out
-        except BaseException:
-            return None
-        rkl.EnableLog("rdApp.*")
-
-        mol_smiles = MolToSmiles(mol, True)
-        if "." in mol_smiles:
+        if mol_smiles is None:
             return None
 
         cpd_id, inchi_key = utils.get_compound_hash(mol_smiles, "Predicted")
@@ -165,10 +146,38 @@ def _run_reaction(
             return cpd_dict
         else:
             return None
+        
+    def _m2s(mol):
+        rkl.DisableLog("rdApp.*")
+        try:
+            if explicit_h:
+                mol = RemoveHs(mol)
+
+            # resolve potential tautomers and choose first one
+            mol_smiles = MolToSmiles(mol, True)
+            if "n" in mol_smiles:
+                mol_smiles = utils.postsanitize_smiles([mol_smiles])[0][0]
+                mol = MolFromSmiles(mol_smiles)
+
+            SanitizeMol(mol)
+
+        # TODO: logger
+        # Get lots of "Explicit valence greater than permitted" errors here
+        # This is for predicted compounds that are infeasible, so we throw them out
+        except BaseException:
+            return None
+        rkl.EnableLog("rdApp.*")
+
+        mol_smiles = MolToSmiles(mol, True)
+        if "." in mol_smiles:
+            return None
+        
+        return mol_smiles
 
     try:
         product_sets = rule[0].RunReactants(reactant_mols, maxProducts=10000)
         reactants, reactant_atoms = _make_half_rxn(reactant_mols, rule[1]["Reactants"])
+        op_aligned_reactants = ".".join([_m2s(mol) or 'None' for mol in reactant_mols])
     except BaseException:
         reactants = None, None
 
@@ -183,6 +192,7 @@ def _run_reaction(
     for product_mols in product_sets:
         try:
             products, product_atoms = _make_half_rxn(product_mols, rule[1]["Products"])
+            op_aligned_products = ".".join([_m2s(mol) or 'None' for mol in product_mols])
             if not products:
                 continue
 
@@ -210,6 +220,7 @@ def _run_reaction(
                         "Products": [(s, p["_id"]) for s, p in products],
                         "Operators": {rule_name},
                         "SMILES_rxn": rxn_text,
+                        "Operator_aligned_smarts": f"{op_aligned_reactants}>>{op_aligned_products}"
                     }
                 else:
                     local_rxns[rhash]["Operators"].add(rule_name)

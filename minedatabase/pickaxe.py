@@ -1567,33 +1567,33 @@ class Pickaxe:
 
 
 if __name__ == "__main__":
-    # # A + B test
-    # import json
+    # A + B test
+    import json
 
-    # artifacts = Path('/home/stef/bottle/artifacts')
-    # corcts_path = artifacts / 'coreactants' / 'metacyc_coreactants.tsv'
-    # rules_path = artifacts / 'rules' / 'JN3604IMT_rules.tsv'
-    # starters_path = artifacts / 'starters_targets' / 'alpha_ketoglutarate.csv'
-    # targets_path = artifacts / 'starters_targets' / 'alpha_ketoglutarate_semialdehyde.csv'
+    artifacts = Path('/home/stef/bottle/artifacts')
+    corcts_path = artifacts / 'coreactants' / 'metacyc_coreactants.tsv'
+    rules_path = artifacts / 'rules' / 'JN3604IMT_rules.tsv'
+    starters_path = artifacts / 'starters_targets' / 'alpha_ketoglutarate.csv'
+    targets_path = artifacts / 'starters_targets' / 'alpha_ketoglutarate_semialdehyde.csv'
 
-    # with open('/home/stef/quest_data/bottle/data/sprhea/sprhea_240310_v3_mapped_no_subunits.json', 'r') as f:
-    #     known_reactions = json.load(f)
+    with open('/home/stef/quest_data/bottle/data/sprhea/sprhea_240310_v3_mapped_no_subunits.json', 'r') as f:
+        known_reactions = json.load(f)
 
-    # known_reactions = [{'smarts': v['smarts'], 'rules': v['imt_rules'] if v['imt_rules'] else []} for v in known_reactions.values()]
+    known_reactions = [{'smarts': v['smarts'], 'rules': v['imt_rules'] if v['imt_rules'] else []} for v in known_reactions.values()]
 
-    # pk = Pickaxe(
-    #     coreactant_list=corcts_path,
-    #     rule_list=rules_path,
-    #     errors=True,
-    #     quiet=True,
-    #     filter_after_final_gen=True,
-    # )
+    pk = Pickaxe(
+        coreactant_list=corcts_path,
+        rule_list=rules_path,
+        errors=True,
+        quiet=True,
+        filter_after_final_gen=True,
+    )
 
-    # pk.load_compound_set(compound_file=starters_path)
-    # pk.load_targets(target_compound_file=targets_path)
-    # pk.set_starters_as_coreactants(known_reactions=known_reactions, subset=['alpha_ketoglutarate'])
-    # pk.transform_all(1, 1) # Expand
-    # pk.prune_network_to_targets()
+    pk.load_compound_set(compound_file=starters_path)
+    pk.load_targets(target_compound_file=targets_path)
+    pk.set_starters_as_coreactants(known_reactions=known_reactions, subset=['alpha_ketoglutarate'])
+    pk.transform_all(1, 1) # Expand
+    pk.prune_network_to_targets()
 
     print(os.getcwd())
     # Get initial time to calculate execution time at end
