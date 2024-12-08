@@ -580,49 +580,29 @@ def mongo_ids_to_mine_ids(mongo_ids: List[str], core_db) -> int:
         mongo_to_mine[cpd_doc["_id"]] = mine_id
     return mongo_to_mine
 
+def get_patts_from_operator(smarts_str, side):
+    '''
+    Get SMARTS patt for each reactant or product
+    if side = 0 or = 1, respectively
+    '''
 
-# TODO: Mark for deletion.
-# def _racemization(compound, max_centers=3, carbon_only=True):
-#     """Enumerates all possible stereoisomers for unassigned chiral centers.
+    # Side smarts pattern
+    smarts = smarts_str.split('>>')[side]
+    smarts = re.sub(r':[0-9]+]', ']', smarts)
 
-#     :param compound: A compound
-#     :type compound: rdMol object
-#     :param max_centers: The maximum number of unspecified stereocenters to
-#         enumerate. Sterioisomers grow 2^n_centers so this cutoff prevents lag
-#     :type max_centers: int
-#     :param carbon_only: Only enumerate unspecified carbon centers. (other
-#         centers are often not tautomeric artifacts)
-#     :type carbon_only: bool
-#     :return: list of stereoisomers
-#     :rtype: list of rdMol objects
-#     """
-#     new_comps = []
-#     # FindMolChiralCenters (rdkit) finds all chiral centers. We get all
-#     # unassigned centers (represented by '?' in the second element
-#     # of the function's return parameters).
-#     unassigned_centers = [c[0] for c in AllChem.FindMolChiralCenters(
-#         compound, includeUnassigned=True) if c[1] == '?']
-#     # Get only unassigned centers that are carbon (atomic number of 6) if
-#     # indicated
-#     if carbon_only:
-#         unassigned_centers = list(
-#             filter(lambda x: compound.GetAtomWithIdx(x).GetAtomicNum() == 6,
-#                 unassigned_centers))
-#     # Return original compound if no unassigned centers exist (or if above
-#     # max specified (to prevent lag))
-#     if not unassigned_centers or len(unassigned_centers) > max_centers:
-#         return [compound]
-#     for seq in itertools.product([1, 0], repeat=len(unassigned_centers)):
-#         for atomid, clockwise in zip(unassigned_centers, seq):
-#             # Get both cw and ccw chiral centers for each center. Used
-#             # itertools.product to get all combinations.
-#             if clockwise:
-#                 compound.GetAtomWithIdx(atomid).SetChiralTag(
-#                     AllChem.rdchem.ChiralType.CHI_TETRAHEDRAL_CW)
-#             else:
-#                 compound.GetAtomWithIdx(atomid).SetChiralTag(
-#                     AllChem.rdchem.ChiralType.CHI_TETRAHEDRAL_CCW)
-#         # Duplicate C++ object so that we don't get multiple pointers to
-#         # same object
-#         new_comps.append(deepcopy(compound))
-#     return new_comps
+    # identify each fragment
+    smarts_list = []
+    temp_fragment = []
+
+    # append complete fragments only
+    for fragment in smarts.split('.'):
+        temp_fragment += [fragment]
+        if '.'.join(temp_fragment).count('(') == '.'.join(temp_fragment).count(')'):
+            smarts_list.append('.'.join(temp_fragment))
+            temp_fragment = []
+
+            # remove component grouping for substructure matching
+            if '.' in smarts_list[-1]:
+                smarts_list[-1] = smarts_list[-1].replace('(', '', 1)[::-1].replace(')', '', 1)[::-1]
+
+    return smarts_list

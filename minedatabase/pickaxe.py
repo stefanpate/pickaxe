@@ -8,6 +8,7 @@ import datetime
 import os
 import pickle
 import time
+from collections import Counter
 from argparse import ArgumentParser
 from io import StringIO
 from pathlib import Path, PosixPath, WindowsPath
@@ -25,6 +26,7 @@ from rdkit.Chem.AllChem import (
     MolFromSmiles,
     MolToInchiKey,
     MolToSmiles,
+    MolFromSmarts,
     ReactionFromSmarts,
     SanitizeMol,
 )
@@ -47,7 +49,6 @@ from minedatabase.reactions import transform_all_compounds_with_full
 # Default to no errors
 lg = logger()
 lg.setLevel(4)
-
 
 class Pickaxe:
     """Class to generate expansions with compounds and reaction rules.
@@ -442,6 +443,80 @@ class Pickaxe:
         if skipped:
             print(f"WARNING: {skipped} rules skipped")
 
+    def set_starters_as_coreactants(self, known_reactions: list[dict], subset: list[str] = []):
+        '''
+        Designate starting molecules as coreactants to apply multisubstrate operators.
+        self.operators and self.coreactants are both modified.
+
+        Args
+        -----
+        known_reactions:list[dict]
+            Known reactions with {'smarts': rule-aligned smarts, 'rules': [rule names that recap. this reaction]}
+        subset:list
+            If provided, only starters with these names will be considered as coreactants
+        '''
+        multi_anys = {k: v for k, v in self.operators.items() if Counter(v[1]['Reactants'])['Any'] > 1}
+        known_roles = self._get_known_roles(known_reactions)
+        candidates = [cpd for cpd in self.compounds.values() if cpd['Type'] == 'Starting Compound']
+        
+        if subset:
+            candidates = filter(lambda x : x['ID'] in subset, candidates)
+
+        for c in candidates:
+            new_coreactant = f"{c['ID'].upper()}_COREACTANT"
+            smi = c['SMILES']
+            mol = MolFromSmiles(smi)
+            
+            for ma_op in multi_anys.values():
+                new_rule_idx = 1
+                rule_name = ma_op[1]['Name']
+                reactant_roles = ma_op[1]['Reactants']
+                patts = [MolFromSmarts(sma) for sma in utils.get_patts_from_operator(ma_op[1]['SMARTS'], side=0)]
+                for i, (patt, role) in enumerate(zip(patts, reactant_roles)):
+                    if role != 'Any':
+                        continue
+
+                    if not mol.HasSubstructMatch(patt):
+                        continue
+
+                    known_role_fillers = known_roles.get(rule_name, [])
+                        
+                    if known_role_fillers and smi in known_role_fillers[i]:
+                        # Add new rule
+                        new_rule_name = f"{rule_name}_{new_rule_idx}"
+                        self.operators[new_rule_name] = ma_op
+                        self.operators[new_rule_name][1]['Name'] = new_rule_name
+                        self.operators[new_rule_name][1]["Reactants"][i] = new_coreactant
+                        self.operators[new_rule_name][1]['_id'] = new_rule_name
+                        new_rule_idx += 1
+
+                        # Add new coreactant
+                        if new_coreactant not in self.coreactants:
+                            self.coreactants[new_coreactant] = (mol, c['_id'])
+
+
+    def _get_known_roles(self, known_reactions: list[dict]) -> dict:
+        '''
+        Converts known reactions to rule-indexed lists of 
+        length = # reactants with set of molecules known to
+        play role of operator reactant i at ith position
+        '''
+        tmp = {}
+        for rxn in known_reactions:
+            rcts = rxn['smarts'].split('>>')[0].split('.') # TODO: standardize smiles / smarts
+            for rule in rxn['rules']:
+                if rule not in tmp:
+                    tmp[rule] = [[] for _ in range(len(rcts))]
+
+                for i, smi in enumerate(rcts):
+                    tmp[rule][i].append(smi)
+
+        known_roles = {}
+        for k, v in tmp.items():
+            known_roles[k] = tuple([set(elt) for elt in v])
+
+        return known_roles
+
     def _mol_from_dict(self, input_dict: dict) -> Mol:
         """Generate an RDKit mol object from a dictionary.
 
@@ -684,112 +759,6 @@ class Pickaxe:
 
             self.generation += 1
 
-    # Partial operator code
-    # def load_partial_operators(self, mapped_reactions):
-    #     """Generate set of partial operators from a list of mapped reactions
-    #     corresponding to the reaction rules being used.
-    #     :param mapped_reactions: A .csv file with four columns: rule id,
-    #     source, SMARTS, mapping info.
-    #     :type mapped_reactions: file
-    #     """
-    #     # generate partial operators as done in ipynb
-    #     if not self.operators:
-    #         print("Load reaction rules before loading partial operators")
-    #     else:
-    #         with open(mapped_reactions) as f:
-    #             for line in f.readlines():
-    #                 # Grab info from current mapped reaction
-    #                 rule, source, smiles, _ = line.strip('\n').split('\t')
-    #                 # There should be 2 or more reactants derived from
-    #                 # the mapping code The mapped code doesn't include
-    #                 # cofactors, so 2 or more means any;any*
-    #                 exact_reactants = smiles.split('>>')[0]\
-    #                                         .replace(';', '.').split('.')
-
-    #                 base_rule = rule.split('_')[0]
-    #                 # base rule must be loaded for partial operator
-    #                 # to be used
-    #                 if base_rule in self.operators:
-    #                     op_reactants = (
-    #                       self.operators[base_rule][1]['Reactants']
-    #                     )
-    #                     if op_reactants.count('Any') >= 2:
-    #                         mapped_reactants = []
-    #                         for i, r in enumerate(op_reactants):
-    #                             if r == 'Any':
-    #                                 mapped_reactants.append(
-    #                                     exact_reactants.pop(0)
-    #                                     )
-    #                             else:
-    #                                 mapped_reactants.append(r)
-
-    #                         ind_SMARTS = (
-    #                           self.operators[base_rule][1]['SMARTS']
-    #                         )
-    #                         ind_SMARTS = (ind_SMARTS.split('>>')[0].
-    #                                       split('>>')[0].replace('(', '').
-    #                                       replace(')', '').split('.'))
-    #                         # now loop through and generate dictionary entries
-    #                         for i, r in enumerate(op_reactants):
-    #                             if r != 'Any':
-    #                                 pass
-    #                             else:
-    #                                 # Build entries
-    #                                 fixed_reactants = [
-    #                                     fr if i != j else 'SMARTS_match'
-    #                                     for j, fr in
-    #                                     enumerate(mapped_reactants)
-    #                                 ]
-
-    # bi_rule =  {
-    #     'rule': base_rule,
-    #     'rule_reaction': rule,
-    #     'reactants': fixed_reactants
-    # }
-    # if (ind_SMARTS[i] in self.partial_operators:
-    #     self.partial_operators[ind_SMARTS[i]].append(bi_rule)
-    # else:
-    #     self.partial_operators[ind_SMARTS[i]] = [bi_rule]
-
-    # def _filter_partial_operators(self):
-    #     # generate the reactions to specifically expand
-    #     # based on current compounds
-    #     def partial_reactants_exist(partial_rule):
-    #         try:
-    #             rule_reactants = (
-    #               self.operators[partial_rule['rule']][1]['Reactants']
-    #             )
-    #             cofactor = [False if r == 'Any' else True
-    #                         for r in rule_reactants]
-
-    #             reactant_ids = []
-    #         for is_cofactor, smi in zip(cofactor, partial_rule['reactants']):
-    #                 if is_cofactor:
-    #                     reactant_ids.append(self.coreactants[smi][1])
-    #                 elif smi == 'SMARTS_match':
-    #                     continue
-    #                 else:
-    #                     reactant_ids.append(utils.get_compound_hash(smi))
-
-    #             reactants_exist = [r in self.compounds for r in reactant_ids]
-    #             if all(reactants_exist):
-    #                 return True
-    #             else:
-    #                 return False
-    #         except:
-    #             return False
-
-    #     filtered_partials = dict()
-    #     for SMARTS_match, rules in self.partial_operators.items():
-    #         for rule in rules:
-    #             if partial_reactants_exist(rule):
-    #                 if SMARTS_match in filtered_partials:
-    #                     filtered_partials[SMARTS_match].append(rule)
-    #                 else:
-    #                     filtered_partials[SMARTS_match] = [rule]
-
-    #     return filtered_partials
-
     def _remove_cofactor_redundancy(self) -> None:
         """Check for reactions that are to be removed.
 
@@ -801,6 +770,12 @@ class Pickaxe:
         cofactors_as_cpds = []
         cofactor_ids = [cofactor[1] for cofactor in self.coreactants.values()]
         for cpd_id in self.compounds:
+
+            # Starting compound designation overrides X coreactant designation
+            if self.compounds[cpd_id]['Type'] == 'Starting Compound':
+                continue
+            
+            # Otherwise predicted * mislabeled X coreactants flagged for deletion
             if "X" + cpd_id[1:] in cofactor_ids and cpd_id.startswith("C"):
                 cofactors_as_cpds.append(cpd_id)
 
@@ -1539,23 +1514,6 @@ class Pickaxe:
 
         update_cpds_rxns(new_cpds, new_rxns)
 
-        # if self.partial_operators:
-        #     print("\nGenerating partial operators...")
-        #     partial_operators = self._filter_partial_operators()
-        #     if partial_operators:
-        #         print("Found partial operators, applying.")
-        #         # transform partial
-        #         new_cpds, new_rxns = _transform_all_compounds_with_partial(
-        #                                     compound_smiles, self.coreactants,
-        #                                     coreactant_dict, self.operators,
-        #                                     self.generation, self.explicit_h,
-        #                                     processes, partial_operators
-        #                             )
-
-        #         update_cpds_rxns(new_cpds, new_rxns)
-        #     else:
-        #         print("No partial operators could be generated.")
-
     def pickle_pickaxe(self, fname: str) -> None:
         """Pickle key pickaxe items.
 
@@ -1609,6 +1567,34 @@ class Pickaxe:
 
 
 if __name__ == "__main__":
+    # # A + B test
+    # import json
+
+    # artifacts = Path('/home/stef/bottle/artifacts')
+    # corcts_path = artifacts / 'coreactants' / 'metacyc_coreactants.tsv'
+    # rules_path = artifacts / 'rules' / 'JN3604IMT_rules.tsv'
+    # starters_path = artifacts / 'starters_targets' / 'alpha_ketoglutarate.csv'
+    # targets_path = artifacts / 'starters_targets' / 'alpha_ketoglutarate_semialdehyde.csv'
+
+    # with open('/home/stef/quest_data/bottle/data/sprhea/sprhea_240310_v3_mapped_no_subunits.json', 'r') as f:
+    #     known_reactions = json.load(f)
+
+    # known_reactions = [{'smarts': v['smarts'], 'rules': v['imt_rules'] if v['imt_rules'] else []} for v in known_reactions.values()]
+
+    # pk = Pickaxe(
+    #     coreactant_list=corcts_path,
+    #     rule_list=rules_path,
+    #     errors=True,
+    #     quiet=True,
+    #     filter_after_final_gen=True,
+    # )
+
+    # pk.load_compound_set(compound_file=starters_path)
+    # pk.load_targets(target_compound_file=targets_path)
+    # pk.set_starters_as_coreactants(known_reactions=known_reactions, subset=['alpha_ketoglutarate'])
+    # pk.transform_all(1, 1) # Expand
+    # pk.prune_network_to_targets()
+
     print(os.getcwd())
     # Get initial time to calculate execution time at end
     t1 = time.time()  # pylint: disable=invalid-name
