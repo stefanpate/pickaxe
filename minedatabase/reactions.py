@@ -114,13 +114,38 @@ def _run_reaction(
         atom_counts["H"] -= charge_correction
 
         cpd_returns = [(stoich, cpds[cpd_id]) for cpd_id, stoich in cpd_counter.items()]
+        
+        op_aligned_side = []
+        for s, cpd in cpd_returns:
+            op_aligned_side += [cpd['SMILES']] * s
 
-        return cpd_returns, atom_counts
+        ".".join(op_aligned_side)
+
+        return cpd_returns, atom_counts, op_aligned_side
 
     def _gen_compound(mol):
-        mol_smiles = _m2s(mol)
+        rkl.DisableLog("rdApp.*")
+        try:
+            if explicit_h:
+                mol = RemoveHs(mol)
 
-        if mol_smiles is None:
+            # resolve potential tautomers and choose first one
+            mol_smiles = MolToSmiles(mol, True)
+            if "n" in mol_smiles:
+                mol_smiles = utils.postsanitize_smiles([mol_smiles])[0][0]
+                mol = MolFromSmiles(mol_smiles)
+
+            SanitizeMol(mol)
+
+        # TODO: logger
+        # Get lots of "Explicit valence greater than permitted" errors here
+        # This is for predicted compounds that are infeasible, so we throw them out
+        except BaseException:
+            return None
+        rkl.EnableLog("rdApp.*")
+
+        mol_smiles = MolToSmiles(mol, True)
+        if "." in mol_smiles:
             return None
 
         cpd_id, inchi_key = utils.get_compound_hash(mol_smiles, "Predicted")
@@ -146,38 +171,10 @@ def _run_reaction(
             return cpd_dict
         else:
             return None
-        
-    def _m2s(mol):
-        rkl.DisableLog("rdApp.*")
-        try:
-            if explicit_h:
-                mol = RemoveHs(mol)
-
-            # resolve potential tautomers and choose first one
-            mol_smiles = MolToSmiles(mol, True)
-            if "n" in mol_smiles:
-                mol_smiles = utils.postsanitize_smiles([mol_smiles])[0][0]
-                mol = MolFromSmiles(mol_smiles)
-
-            SanitizeMol(mol)
-
-        # TODO: logger
-        # Get lots of "Explicit valence greater than permitted" errors here
-        # This is for predicted compounds that are infeasible, so we throw them out
-        except BaseException:
-            return None
-        rkl.EnableLog("rdApp.*")
-
-        mol_smiles = MolToSmiles(mol, True)
-        if "." in mol_smiles:
-            return None
-        
-        return mol_smiles
 
     try:
         product_sets = rule[0].RunReactants(reactant_mols, maxProducts=10000)
-        reactants, reactant_atoms = _make_half_rxn(reactant_mols, rule[1]["Reactants"])
-        op_aligned_reactants = ".".join([_m2s(mol) or 'None' for mol in reactant_mols])
+        reactants, reactant_atoms, op_aligned_reactants = _make_half_rxn(reactant_mols, rule[1]["Reactants"])
     except BaseException:
         reactants = None, None
 
@@ -191,8 +188,7 @@ def _run_reaction(
 
     for product_mols in product_sets:
         try:
-            products, product_atoms = _make_half_rxn(product_mols, rule[1]["Products"])
-            op_aligned_products = ".".join([_m2s(mol) or 'None' for mol in product_mols])
+            products, product_atoms, op_aligned_products = _make_half_rxn(product_mols, rule[1]["Products"])
             if not products:
                 continue
 
@@ -229,7 +225,6 @@ def _run_reaction(
             continue
     # return compounds and reactions to be added into the local
     return local_cpds, local_rxns
-
 
 # Full Operators
 def _transform_ind_compound_with_full(
