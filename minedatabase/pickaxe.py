@@ -852,6 +852,7 @@ class Pickaxe:
                         "Products": [(s, p["_id"]) for s, p in products],
                         "Operators": rxn["Operators"],
                         "SMILES_rxn": rxn_text,
+                        "Operator_aligned_smarts": rxn["Operator_aligned_smarts"],
                     }
 
                     # Assign reaction to reactions dict
