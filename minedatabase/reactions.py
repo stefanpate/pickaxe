@@ -119,7 +119,7 @@ def _run_reaction(
         for s, cpd in cpd_returns:
             op_aligned_side += [cpd['SMILES']] * s
 
-        ".".join(op_aligned_side)
+        op_aligned_side = ".".join(op_aligned_side)
 
         return cpd_returns, atom_counts, op_aligned_side
 
@@ -224,7 +224,7 @@ def _run_reaction(
         except BaseException:
             continue
     # return compounds and reactions to be added into the local
-    return local_cpds, local_rxns
+    return local_cpds, local_rxns   
 
 # Full Operators
 def _transform_ind_compound_with_full(
