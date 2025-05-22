@@ -158,6 +158,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "lxml" },
     { name = "pandas" },
+    { name = "python-libsbml" },
     { name = "rdkit" },
     { name = "scikit-learn" },
     { name = "setuptools" },
@@ -172,6 +173,7 @@ test = [
 requires-dist = [
     { name = "lxml", specifier = ">=5.4.0" },
     { name = "pandas", specifier = ">=2.2.3" },
+    { name = "python-libsbml", specifier = ">=5.20.5" },
     { name = "rdkit", specifier = ">=2025.3.2" },
     { name = "scikit-learn", specifier = ">=1.6.1" },
     { name = "setuptools", specifier = ">=80.8.0" },
@@ -255,6 +257,24 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/66/c0/0c8b6ad9f17a802ee498c46e004a0eb49bc148f2fd230864601a86dcf6db/python-dateutil-2.9.0.post0.tar.gz", hash = "sha256:37dd54208da7e1cd875388217d5e00ebd4179249f90fb72437e91a35459a0ad3", size = 342432 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ec/57/56b9bcc3c9c6a792fcbaf139543cee77261f3651ca9da0c93f5c1221264b/python_dateutil-2.9.0.post0-py2.py3-none-any.whl", hash = "sha256:a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427", size = 229892 },
+]
+
+[[package]]
+name = "python-libsbml"
+version = "5.20.5"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/5d/4b/b49fe7384cc9e727e88c58713edc3b4a1c469673937d8d31cafe23261120/python_libsbml-5.20.5.tar.gz", hash = "sha256:a54b7377b125043fd40df0ec77900c12f99c7f7d48b9e12e82b1aef9502cc09a", size = 41798937 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a6/d6/269bd9d7dfb69025e98c7afe2285a9c6d66b980209bbdbd54ffd995c592f/python_libsbml-5.20.5-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:e3e746ad338b2b4debf433ad3e8dea79984666c72be398f32d1c4a7d1ddb105f", size = 6363556 },
+    { url = "https://files.pythonhosted.org/packages/ad/c0/3ba180b1d18c5d1427e3772fa1402f72ce6edaac345e4aab14af61f50916/python_libsbml-5.20.5-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:9f534be1c421e706c4473c33b7553a574f51b84e2dd1d4612c9c5a62f7cf9134", size = 6094716 },
+    { url = "https://files.pythonhosted.org/packages/eb/7f/59669e43e75428a6e740bb11bf40f0a5f4afc7a6604f7071560dd1f7fab3/python_libsbml-5.20.5-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:b86197750f3fe1cde04303ac320fe12fce625553bbfe39eaf1c1f101c0e086dd", size = 7621189 },
+    { url = "https://files.pythonhosted.org/packages/1f/02/696c5a0dc72a3949224207534219afe54951381f2ad4ee1df5e03833edbe/python_libsbml-5.20.5-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:5abf5873f2aed8e1286be28f2ae6cf1285840760cfc0d6cbd20d0b217860f3ce", size = 8155039 },
+    { url = "https://files.pythonhosted.org/packages/11/68/528c874841022d90fc93854197d327aab7c65b36c8a8d954a5280e9520b4/python_libsbml-5.20.5-cp312-cp312-win_amd64.whl", hash = "sha256:6a51615a6cd7b6b338ff65e3996a4428e71b73d4de9fbf7ee8425a1d5e16647e", size = 6030343 },
+    { url = "https://files.pythonhosted.org/packages/9f/8f/e98feeb2d0a6ef95716123cb808b25723dabbcde5d0f555e89360be1d8d6/python_libsbml-5.20.5-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:45f8f60379fe5c7d9776b278100622b8df988cce9fbf6e91b53231897ae044f8", size = 6363553 },
+    { url = "https://files.pythonhosted.org/packages/f5/45/2e64419d50428b67a7592850121afee11f83448781506bbc389f737c2597/python_libsbml-5.20.5-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:d25b106640d55f86e155a149fb7e9741a74c33f211ad0a15ba5d848a04909119", size = 6094719 },
+    { url = "https://files.pythonhosted.org/packages/46/8f/3e211bbdaf69ca0c789530353cdf02711f95e70ac8581a08ce0c45903c80/python_libsbml-5.20.5-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:198c5cf1cc82c46e9665e048799c0a0d4d699cffff959af6d9e97dd145e967d9", size = 7621140 },
+    { url = "https://files.pythonhosted.org/packages/c6/92/a8a86812776326ffdfac6c5addc7581f6399f7b825b31dd90e211f63739f/python_libsbml-5.20.5-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:d0dedc59f6eb5c901a127751ee314a83bb30bdec2355c99c99205aef6484d6f0", size = 8155062 },
+    { url = "https://files.pythonhosted.org/packages/b8/49/70f6288db3ce3ef006627318d518235836c47b34e4aa7716760e33b639b9/python_libsbml-5.20.5-cp313-cp313-win_amd64.whl", hash = "sha256:763222865e39d51e408c2c9af3dafa0d58f613e75d9ff117de8f8a2b9f7eb59e", size = 6027822 },
 ]
 
 [[package]]
