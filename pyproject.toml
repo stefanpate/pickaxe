@@ -1,12 +1,13 @@
 [project]
-name = "pickaxe"
+name = "minedatabase"
 version = "0.1.0"
-description = "Add your description here"
+description = "The MINE Database contains code for generating (through Pickaxe) and storing and retrieving compounds from a database. Pickaxe applies reaction rules, representing reaction transformation patterns, to a list of user-specified compounds in order to predict reactions."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "lxml>=5.4.0",
     "pandas>=2.2.3",
+    "pymongo>=4.13.0",
     "python-libsbml>=5.20.5",
     "rdkit>=2025.3.2",
     "scikit-learn>=1.6.1",
