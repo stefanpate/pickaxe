@@ -443,20 +443,22 @@ class Pickaxe:
         if skipped:
             print(f"WARNING: {skipped} rules skipped")
 
-    def set_starters_as_coreactants(self, known_reactions: list[dict], subset: list[str] = []):
+    def set_starters_as_coreactants(self, known_reactions: list[dict] = [], subset: list[str] = []):
         '''
         Designate starting molecules as coreactants to apply multisubstrate operators.
         self.operators and self.coreactants are both modified.
 
         Args
         -----
-        known_reactions:list[dict]
-            Known reactions with {'smarts': rule-aligned smarts, 'rules': [rule names that recap. this reaction]}
+        known_reactions:list[dict] (Optional)
+            Known reactions with {'smarts': rule-aligned smarts, 'rules': [rule names that recap. this reaction]}.
+            Default is empty list which will result in only enforcing SMARTS template match and 'Any' role, 
+            NOT requirement of exact molecule having played that exact role in a known reaction.
         subset:list
             If provided, only starters with these names will be considered as coreactants
         '''
         multi_anys = {k: v for k, v in self.operators.items() if Counter(v[1]['Reactants'])['Any'] > 1}
-        known_roles = self._get_known_roles(known_reactions)
+        known_roles = self._get_known_roles(known_reactions) if known_reactions else {}
         candidates = [cpd for cpd in self.compounds.values() if cpd['Type'] == 'Starting Compound']
         
         if subset:
@@ -468,7 +470,7 @@ class Pickaxe:
             mol = MolFromSmiles(smi)
             
             for ma_op in multi_anys.values():
-                new_rule_idx = 1
+                new_rule_idx = 0
                 rule_name = ma_op[1]['Name']
                 reactant_roles = ma_op[1]['Reactants']
                 patts = [MolFromSmarts(sma) for sma in utils.get_patts_from_operator(ma_op[1]['SMARTS'], side=0)]
@@ -481,7 +483,8 @@ class Pickaxe:
 
                     known_role_fillers = known_roles.get(rule_name, [])
                         
-                    if known_role_fillers and smi in known_role_fillers[i]:
+                    # if not enforcing known roles or if there is known role match
+                    if not known_roles or (known_role_fillers and smi in known_role_fillers[i]):
                         # Add new rule
                         new_rule_name = f"{rule_name}_{new_rule_idx}"
                         self.operators[new_rule_name] = ma_op
