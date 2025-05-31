@@ -82,9 +82,8 @@ def _run_reaction(
     -------
     Tuple[dict, dict]
         A tuple of local compounds, local reactions.
-    """
-
-    def _make_half_rxn(mol_list, rules):
+    """    
+    def _make_half_rxn(mol_list, rules, de_am=False):
         cpds = {}
         cpd_counter = collections.Counter()
 
@@ -92,11 +91,15 @@ def _run_reaction(
         charge_correction = 0
 
         for mol, rule in zip(mol_list, rules):
+            if de_am:
+                for atom in mol.GetAtoms():
+                    atom.SetAtomMapNum(0)
+
             if rule == "Any":
                 cpd_dict = _gen_compound(mol)
                 # failed compound
                 if cpd_dict is None:
-                    return None, None
+                    return None, None, None
             else:
                 cpd_id = coreactant_mols[rule][1]
                 cpd_dict = coreactant_dict[cpd_id]
@@ -173,11 +176,13 @@ def _run_reaction(
             return None
 
     try:
-        product_sets = rule[0].RunReactants(reactant_mols, maxProducts=10000)
+        am_rcts, am_pdts = utils.run_reaction_w_atom_mapping(rcts=reactant_mols, rule=rule[0])
         reactants, reactant_atoms, op_aligned_reactants = _make_half_rxn(reactant_mols, rule[1]["Reactants"])
-    except BaseException:
+        am_rsmi = ".".join([MolToSmiles(m, ignoreAtomMapNumbers=True) for m in am_rcts])
+    except BaseException as e:
+        print(f"Error running reaction {rule_name}: {e}")
         reactants = None, None
-
+    
     if reactants is None:
         reactants = None, None
 
@@ -186,9 +191,10 @@ def _run_reaction(
 
     reactant_set = set([r[1]["_id"] for r in reactants])
 
-    for product_mols in product_sets:
+    for product_mols in am_pdts:
+        am_psmi = ".".join([MolToSmiles(m, ignoreAtomMapNumbers=True) for m in product_mols])
         try:
-            products, product_atoms, op_aligned_products = _make_half_rxn(product_mols, rule[1]["Products"])
+            products, product_atoms, op_aligned_products = _make_half_rxn(product_mols, rule[1]["Products"], de_am=True)
             if not products:
                 continue
 
@@ -216,7 +222,8 @@ def _run_reaction(
                         "Products": [(s, p["_id"]) for s, p in products],
                         "Operators": {rule_name},
                         "SMILES_rxn": rxn_text,
-                        "Operator_aligned_smarts": f"{op_aligned_reactants}>>{op_aligned_products}"
+                        "Operator_aligned_smarts": f"{op_aligned_reactants}>>{op_aligned_products}",
+                        "am_rxn": f"{am_rsmi}>>{am_psmi}",
                     }
                 else:
                     local_rxns[rhash]["Operators"].add(rule_name)
@@ -403,7 +410,6 @@ def transform_all_compounds_with_full(
             print_progress(i, len(compound_smiles))
 
     return new_cpds_master, new_rxns_master
-
 
 # TODO: Partial operators aren't used... keep here or move?
 # Partial Operators

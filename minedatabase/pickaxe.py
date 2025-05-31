@@ -1570,200 +1570,242 @@ class Pickaxe:
             print(f"Took {time.time() - start_load}")
 
 
+# if __name__ == "__main__":
+#     # A + B test
+#     import json
+
+#     artifacts = Path('/home/stef/bottle/artifacts')
+#     corcts_path = artifacts / 'coreactants' / 'metacyc_coreactants.tsv'
+#     rules_path = artifacts / 'rules' / 'JN3604IMT_rules.tsv'
+#     starters_path = artifacts / 'starters_targets' / 'alpha_ketoglutarate.csv'
+#     targets_path = artifacts / 'starters_targets' / 'alpha_ketoglutarate_semialdehyde.csv'
+
+#     with open('/home/stef/quest_data/bottle/data/sprhea/sprhea_240310_v3_mapped_no_subunits.json', 'r') as f:
+#         known_reactions = json.load(f)
+
+#     known_reactions = [{'smarts': v['smarts'], 'rules': v['imt_rules'] if v['imt_rules'] else []} for v in known_reactions.values()]
+
+#     pk = Pickaxe(
+#         coreactant_list=corcts_path,
+#         rule_list=rules_path,
+#         errors=True,
+#         quiet=True,
+#         filter_after_final_gen=True,
+#     )
+
+#     pk.load_compound_set(compound_file=starters_path)
+#     pk.load_targets(target_compound_file=targets_path)
+#     pk.set_starters_as_coreactants(known_reactions=known_reactions, subset=['alpha_ketoglutarate'])
+#     pk.transform_all(1, 1) # Expand
+#     pk.prune_network_to_targets()
+
+#     print(os.getcwd())
+#     # Get initial time to calculate execution time at end
+#     t1 = time.time()  # pylint: disable=invalid-name
+#     # Parse all command line arguments
+#     parser = ArgumentParser()  # pylint: disable=invalid-name
+#     # Core args
+#     parser.add_argument(
+#         "-C",
+#         "--coreactant_list",
+#         default="./tests/data/test_coreactants.tsv",
+#         help="Specify a list of coreactants as a .tsv",
+#     )
+#     parser.add_argument(
+#         "-r",
+#         "--rule_list",
+#         default="./tests/data/test_reaction_rules.tsv",
+#         help="Specify a list of reaction rules as a .tsv",
+#     )
+#     parser.add_argument(
+#         "-c",
+#         "--compound_file",
+#         default="./tests/data/test_compounds.tsv",
+#         help="Specify a list of starting compounds as .tsv or .csv",
+#     )
+#     parser.add_argument(
+#         "-v",
+#         "--verbose",
+#         action="store_true",
+#         default=False,
+#         help="Display RDKit errors & warnings",
+#     )
+#     # parser.add_argument('--bnice', action='store_true', default=False,
+#     #                     help="Set several options to enable compatibility "
+#     #                          "with bnice operators.")
+#     parser.add_argument(
+#         "-H",
+#         "--explicit_h",
+#         action="store_true",
+#         default=False,
+#         help="Specify explicit hydrogen for use in reaction rules.",
+#     )
+#     parser.add_argument(
+#         "-k",
+#         "--kekulize",
+#         action="store_true",
+#         default=False,
+#         help="Specify whether to kekulize compounds.",
+#     )
+#     parser.add_argument(
+#         "-n",
+#         "--neutralise",
+#         action="store_true",
+#         default=True,
+#         help="Specify whether to neturalise compounds.",
+#     )
+
+#     parser.add_argument(
+#         "-m",
+#         "--processes",
+#         default=1,
+#         type=int,
+#         help="Set the max number of processes.",
+#     )
+
+#     parser.add_argument(
+#         "-g",
+#         "--generations",
+#         default=1,
+#         type=int,
+#         help="Set the numbers of time to apply the reaction rules to the compound set.",
+#     )
+
+#     parser.add_argument(
+#         "-q",
+#         "--quiet",
+#         action="store_true",
+#         default=True,
+#         help="Silence warnings about imbalanced reactions",
+#     )
+
+#     parser.add_argument(
+#         "-s", "--smiles", default=None, help="Specify a starting compound SMILES."
+#     )
+
+#     # Result args
+#     parser.add_argument(
+#         "-p",
+#         "--pruning_whitelist",
+#         default=None,
+#         help="Specify a list of target compounds to prune reaction network down to.",
+#     )
+#     parser.add_argument(
+#         "-o",
+#         "--output_dir",
+#         default=None,
+#         help="The directory in which to write files.",
+#     )
+#     parser.add_argument(
+#         "-d",
+#         "--database",
+#         default=None,
+#         help="The URI of the database in which to store "
+#         "output. If not specified, data is written "
+#         "as tsv files",
+#     )
+#     parser.add_argument(
+#         "-u",
+#         "--mongo_uri",
+#         default="mongodb://localhost:27017",
+#         help="The URI of the mongo database to connect to. Defaults to"
+#         " mongodb://localhost:27017",
+#     )
+#     parser.add_argument(
+#         "-i",
+#         "--image_dir",
+#         default=None,
+#         help="Specify a directory to store images of all created compounds",
+#     )
+#     parser.add_argument(
+#         "-wc",
+#         "--write_core",
+#         default=False,
+#         help="Whether or not to write results into core database.",
+#     )
+
+#     OPTIONS = parser.parse_args()
+
+#     if not any([OPTIONS.database, OPTIONS.output_dir]):
+#         exit("No output selected, terminating run.")
+
+#     pk = Pickaxe(
+#         coreactant_list=OPTIONS.coreactant_list,
+#         rule_list=OPTIONS.rule_list,
+#         errors=OPTIONS.verbose,
+#         explicit_h=OPTIONS.explicit_h,
+#         kekulize=OPTIONS.kekulize,
+#         neutralise=OPTIONS.neutralise,
+#         image_dir=OPTIONS.image_dir,
+#         quiet=OPTIONS.quiet,
+#         database=OPTIONS.database,
+#         mongo_uri=OPTIONS.mongo_uri,
+#     )
+#     # Create a directory for image output file if it doesn't already exist
+#     if OPTIONS.image_dir and not os.path.exists(OPTIONS.image_dir):
+#         os.mkdir(OPTIONS.image_dir)
+#     # If starting compound specified as SMILES string, then add it
+#     if OPTIONS.smiles:
+#         pk._add_compound("Start", OPTIONS.smiles, cpd_type="Starting Compound")
+#     else:
+#         pk.load_compound_set(compound_file=OPTIONS.compound_file)
+#     # Generate reaction network
+#     pk.transform_all(processes=OPTIONS.processes, generations=OPTIONS.generations)
+#     if OPTIONS.pruning_whitelist:
+#         mols = [
+#             pk._mol_from_dict(line)
+#             for line in utils.file_to_dict_list(OPTIONS.pruning_whitelist)
+#         ]
+#         pk.prune_network([utils.get_compound_hash(x) for x in mols if x])
+
+#     if OPTIONS.output_dir:
+#         pk.assign_ids()
+#         pk.write_compound_output_file(OPTIONS.output_dir + "/compounds.tsv")
+#         pk.write_reaction_output_file(OPTIONS.output_dir + "/reactions.tsv")
+
+#     if OPTIONS.database:
+#         pk.save_to_mine(processes=OPTIONS.processes, write_core=OPTIONS.write_core)
+
+#     print(f"Execution took {time.time() - t1} seconds.")
+
 if __name__ == "__main__":
-    # A + B test
-    import json
+    file_dir = Path("/home/stef/pickaxe/tests")
 
-    artifacts = Path('/home/stef/bottle/artifacts')
-    corcts_path = artifacts / 'coreactants' / 'metacyc_coreactants.tsv'
-    rules_path = artifacts / 'rules' / 'JN3604IMT_rules.tsv'
-    starters_path = artifacts / 'starters_targets' / 'alpha_ketoglutarate.csv'
-    targets_path = artifacts / 'starters_targets' / 'alpha_ketoglutarate_semialdehyde.csv'
+    smiles_dict = {
+        "ATP": "Nc1ncnc2c1ncn2[C@@H]1O[C@H](COP(=O)(O)OP(=O)(O)OP(=O)(O)O)[C"
+        + "@@H](O)[C@H]1O",
+        "ADP": "Nc1ncnc2c1ncn2[C@@H]1O[C@H](COP(=O)(O)OP(=O)(O)O)[C@@H](O)[C" + "@H]1O",
+        "meh": "CCC(=O)C(=O)O",
+        "l_ala": "C[C@H](N)C(=O)O",
+        "d_ala": "C[C@@H](N)C(=O)O",
+        "FADH": "Cc1cc2c(cc1C)N(CC(O)C(O)C(O)COP(=O)(O)OP(=O)(O)OCC1OC(n3cnc"
+        + "4c(N)ncnc43)C(O)C1O)c1nc(O)nc(O)c1N2",
+        "S-Adenosylmethionine": "C[S+](CC[C@H](N)C(=O)O)C[C@H]1O[C@@H](n2cnc"
+        + "3c(N)ncnc32)[C@H](O)[C@@H]1O",
+    }
 
-    with open('/home/stef/quest_data/bottle/data/sprhea/sprhea_240310_v3_mapped_no_subunits.json', 'r') as f:
-        known_reactions = json.load(f)
-
-    known_reactions = [{'smarts': v['smarts'], 'rules': v['imt_rules'] if v['imt_rules'] else []} for v in known_reactions.values()]
-
+    coreactant_dict = {
+        "ATP": "ATP		" + smiles_dict["ATP"],
+        "ADP": "ADP		" + smiles_dict["ADP"],
+        "S-Adenosylmethionine": "S-Adenosylmethionine		"
+        + smiles_dict["S-Adenosylmethionine"],
+    }
     pk = Pickaxe(
-        coreactant_list=corcts_path,
-        rule_list=rules_path,
-        errors=True,
-        quiet=True,
-        filter_after_final_gen=True,
+        coreactant_list=file_dir / "data/test_coreactants.tsv",
+        rule_list=file_dir / "data/test_reaction_rules.tsv",
+        explicit_h=True,
+        quiet=False,
     )
-
-    pk.load_compound_set(compound_file=starters_path)
-    pk.load_targets(target_compound_file=targets_path)
-    pk.set_starters_as_coreactants(known_reactions=known_reactions, subset=['alpha_ketoglutarate'])
-    pk.transform_all(1, 1) # Expand
-    pk.prune_network_to_targets()
-
-    print(os.getcwd())
-    # Get initial time to calculate execution time at end
-    t1 = time.time()  # pylint: disable=invalid-name
-    # Parse all command line arguments
-    parser = ArgumentParser()  # pylint: disable=invalid-name
-    # Core args
-    parser.add_argument(
-        "-C",
-        "--coreactant_list",
-        default="./tests/data/test_coreactants.tsv",
-        help="Specify a list of coreactants as a .tsv",
+    default_rule = pk.operators["2.7.1.a"]
+    pk._load_coreactant(coreactant_dict["ATP"])
+    pk._load_coreactant(coreactant_dict["ADP"])
+    pk._add_compound(
+        smiles_dict["FADH"], smiles_dict["FADH"], cpd_type="Starting Compound"
     )
-    parser.add_argument(
-        "-r",
-        "--rule_list",
-        default="./tests/data/test_reaction_rules.tsv",
-        help="Specify a list of reaction rules as a .tsv",
-    )
-    parser.add_argument(
-        "-c",
-        "--compound_file",
-        default="./tests/data/test_compounds.tsv",
-        help="Specify a list of starting compounds as .tsv or .csv",
-    )
-    parser.add_argument(
-        "-v",
-        "--verbose",
-        action="store_true",
-        default=False,
-        help="Display RDKit errors & warnings",
-    )
-    # parser.add_argument('--bnice', action='store_true', default=False,
-    #                     help="Set several options to enable compatibility "
-    #                          "with bnice operators.")
-    parser.add_argument(
-        "-H",
-        "--explicit_h",
-        action="store_true",
-        default=False,
-        help="Specify explicit hydrogen for use in reaction rules.",
-    )
-    parser.add_argument(
-        "-k",
-        "--kekulize",
-        action="store_true",
-        default=False,
-        help="Specify whether to kekulize compounds.",
-    )
-    parser.add_argument(
-        "-n",
-        "--neutralise",
-        action="store_true",
-        default=True,
-        help="Specify whether to neturalise compounds.",
-    )
-
-    parser.add_argument(
-        "-m",
-        "--processes",
-        default=1,
-        type=int,
-        help="Set the max number of processes.",
-    )
-
-    parser.add_argument(
-        "-g",
-        "--generations",
-        default=1,
-        type=int,
-        help="Set the numbers of time to apply the reaction rules to the compound set.",
-    )
-
-    parser.add_argument(
-        "-q",
-        "--quiet",
-        action="store_true",
-        default=True,
-        help="Silence warnings about imbalanced reactions",
-    )
-
-    parser.add_argument(
-        "-s", "--smiles", default=None, help="Specify a starting compound SMILES."
-    )
-
-    # Result args
-    parser.add_argument(
-        "-p",
-        "--pruning_whitelist",
-        default=None,
-        help="Specify a list of target compounds to prune reaction network down to.",
-    )
-    parser.add_argument(
-        "-o",
-        "--output_dir",
-        default=None,
-        help="The directory in which to write files.",
-    )
-    parser.add_argument(
-        "-d",
-        "--database",
-        default=None,
-        help="The URI of the database in which to store "
-        "output. If not specified, data is written "
-        "as tsv files",
-    )
-    parser.add_argument(
-        "-u",
-        "--mongo_uri",
-        default="mongodb://localhost:27017",
-        help="The URI of the mongo database to connect to. Defaults to"
-        " mongodb://localhost:27017",
-    )
-    parser.add_argument(
-        "-i",
-        "--image_dir",
-        default=None,
-        help="Specify a directory to store images of all created compounds",
-    )
-    parser.add_argument(
-        "-wc",
-        "--write_core",
-        default=False,
-        help="Whether or not to write results into core database.",
-    )
-
-    OPTIONS = parser.parse_args()
-
-    if not any([OPTIONS.database, OPTIONS.output_dir]):
-        exit("No output selected, terminating run.")
-
-    pk = Pickaxe(
-        coreactant_list=OPTIONS.coreactant_list,
-        rule_list=OPTIONS.rule_list,
-        errors=OPTIONS.verbose,
-        explicit_h=OPTIONS.explicit_h,
-        kekulize=OPTIONS.kekulize,
-        neutralise=OPTIONS.neutralise,
-        image_dir=OPTIONS.image_dir,
-        quiet=OPTIONS.quiet,
-        database=OPTIONS.database,
-        mongo_uri=OPTIONS.mongo_uri,
-    )
-    # Create a directory for image output file if it doesn't already exist
-    if OPTIONS.image_dir and not os.path.exists(OPTIONS.image_dir):
-        os.mkdir(OPTIONS.image_dir)
-    # If starting compound specified as SMILES string, then add it
-    if OPTIONS.smiles:
-        pk._add_compound("Start", OPTIONS.smiles, cpd_type="Starting Compound")
-    else:
-        pk.load_compound_set(compound_file=OPTIONS.compound_file)
-    # Generate reaction network
-    pk.transform_all(processes=OPTIONS.processes, generations=OPTIONS.generations)
-    if OPTIONS.pruning_whitelist:
-        mols = [
-            pk._mol_from_dict(line)
-            for line in utils.file_to_dict_list(OPTIONS.pruning_whitelist)
-        ]
-        pk.prune_network([utils.get_compound_hash(x) for x in mols if x])
-
-    if OPTIONS.output_dir:
-        pk.assign_ids()
-        pk.write_compound_output_file(OPTIONS.output_dir + "/compounds.tsv")
-        pk.write_reaction_output_file(OPTIONS.output_dir + "/reactions.tsv")
-
-    if OPTIONS.database:
-        pk.save_to_mine(processes=OPTIONS.processes, write_core=OPTIONS.write_core)
-
-    print(f"Execution took {time.time() - t1} seconds.")
+    pk.operators["2.7.1.a"] = default_rule
+    pk.transform_all(generations=2)
+    print()
+    # assert len(pk.compounds) == 31
+    # assert len(pk.reactions) == 49
+    # comp_gens = set([x["Generation"] for x in pk.compounds.values()])
+    # assert comp_gens == {0, 1, 2}

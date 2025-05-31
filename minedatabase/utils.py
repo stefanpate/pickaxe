@@ -13,6 +13,7 @@ from itertools import chain, islice
 from numbers import Number
 from os import path
 from typing import List, Tuple, Union
+from copy import deepcopy
 
 import rdkit
 from rdkit import Chem
@@ -606,3 +607,68 @@ def get_patts_from_operator(smarts_str, side):
                 smarts_list[-1] = smarts_list[-1].replace('(', '', 1)[::-1].replace(')', '', 1)[::-1]
 
     return smarts_list
+
+
+def run_reaction_w_atom_mapping(
+    rcts: tuple[Chem.Mol],
+    rule: AllChem.ChemicalReaction,
+    max_products: int = 10000
+) -> tuple[tuple[Chem.Mol], tuple[tuple[Chem.Mol]]]:
+    '''
+    Apply a rule to reactants and returns atom mapped 
+    reactants and products.
+    
+    Args
+    ----
+    rcts: tuple[Chem.Mol]
+        Reactants to run the reaction on.
+    rule: rdkit.Chem.AllChem.ChemicalReaction
+        Reaction to run on the reactants.
+    max_products: int
+        Maximum number of products to return. Default is 10000.
+    
+    Returns
+    -------
+    am_rcts: tuple[Chem.Mol, ...]
+        Atom mapped reactants.
+    am_outputs: tuple[tuple[Chem.Mol, ...], ...]
+        Nested tuple of atom mapped products. Each inner tuple corresponds to a set of products from the reaction.
+    '''
+    # Defensive copy of reactants
+    rcts = tuple(deepcopy(rct) for rct in rcts)
+
+    # Pre-reaction prep to maintain atom mapping
+    # Fix rct atom mapping as 1 + rct_aidx + \sum n_atoms_< rct_idx
+    # Set a reactant index prop for all atoms
+    am_offsets = list(itertools.accumulate([1] + [mol.GetNumAtoms() for mol in rcts]))
+    for i, mol, offset in zip(range(len(rcts)), rcts, am_offsets):
+        for atom in mol.GetAtoms():
+            atom.SetAtomMapNum(atom.GetIdx() + offset)
+            atom.SetIntProp("reactant_idx", i)
+
+    # Preserve rule am to rct index before running reaction
+    # need this to map product atoms back to reactant atoms
+    rule_map_num_to_rct_idx = {}
+    for ri in range(rule.GetNumReactantTemplates()):
+        rt = rule.GetReactantTemplate(ri)
+        for atom in rt.GetAtoms():
+            if atom.GetAtomMapNum():
+                rule_map_num_to_rct_idx[atom.GetAtomMapNum()] = ri
+
+    # Set atom map nums for products in all outputs based on reactant
+    # indices and reactant atom indices
+    outputs = rule.RunReactants(rcts, maxProducts=max_products)
+    for output in outputs:
+        for prod in output:
+            for atom in prod.GetAtoms():
+                props = atom.GetPropsAsDict()
+                rct_atom_idx = props.get('react_atom_idx')
+                rct_idx = props.get('reactant_idx')
+                
+                if rct_idx is None:
+                    old_am = props.get('old_mapno')
+                    rct_idx = rule_map_num_to_rct_idx[old_am]
+
+                atom.SetAtomMapNum(rct_atom_idx + am_offsets[rct_idx])
+
+    return rcts, outputs
