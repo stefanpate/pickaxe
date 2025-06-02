@@ -355,9 +355,9 @@ class Pickaxe:
             mol = MolFromSmiles(split_text[2])
             if not mol:
                 raise ValueError
-            # TODO: what do do about stereochemistry? Original comment is below
-            # but stereochem was taken out (isn't it removed later anyway?)
-            # # Generate SMILES string with stereochemistry taken into account
+
+            # Re-added stereo removal. For now, no stereochemistry support SP 2025-6-2
+            RemoveStereochemistry(mol)
             smi = MolToSmiles(mol)
         except (IndexError, ValueError):
             raise ValueError(f"Unable to load coreactant: {coreactant_text}")
