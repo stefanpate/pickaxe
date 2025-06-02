@@ -9,7 +9,7 @@ dependencies = [
     "pandas>=2.2.3",
     "pymongo>=4.13.0",
     "python-libsbml>=5.20.5",
-    "rdkit>=2025.3.2",
+    "rdkit>=2024.9.5",
     "scikit-learn>=1.6.1",
     "setuptools>=70.1.1",
 ]
