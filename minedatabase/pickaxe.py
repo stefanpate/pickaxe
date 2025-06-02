@@ -856,6 +856,7 @@ class Pickaxe:
                         "Operators": rxn["Operators"],
                         "SMILES_rxn": rxn_text,
                         "Operator_aligned_smarts": rxn["Operator_aligned_smarts"],
+                        "am_rxn": rxn["am_rxn"],
                     }
 
                     # Assign reaction to reactions dict

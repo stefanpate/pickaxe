@@ -192,8 +192,8 @@ def _run_reaction(
     reactant_set = set([r[1]["_id"] for r in reactants])
 
     for product_mols in am_pdts:
-        am_psmi = ".".join([MolToSmiles(m, ignoreAtomMapNumbers=True) for m in product_mols])
         try:
+            am_psmi = ".".join([MolToSmiles(m, ignoreAtomMapNumbers=True) for m in product_mols])
             products, product_atoms, op_aligned_products = _make_half_rxn(product_mols, rule[1]["Products"], de_am=True)
             if not products:
                 continue
