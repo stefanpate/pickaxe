@@ -11,7 +11,7 @@ dependencies = [
     "python-libsbml>=5.20.5",
     "rdkit>=2025.3.2",
     "scikit-learn>=1.6.1",
-    "setuptools>=71.1.1",
+    "setuptools>=70.1.1",
 ]
 
 [dependency-groups]
