@@ -777,6 +777,10 @@ class Pickaxe:
             # Starting compound designation overrides X coreactant designation
             if self.compounds[cpd_id]['Type'] == 'Starting Compound':
                 continue
+
+            # Target compound designation overrides X coreactant designation
+            if 'T' + cpd_id[1:] in self.targets:
+                continue
             
             # Otherwise predicted * mislabeled X coreactants flagged for deletion
             if "X" + cpd_id[1:] in cofactor_ids and cpd_id.startswith("C"):
