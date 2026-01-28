@@ -34,6 +34,7 @@ from rdkit.Chem.Draw import MolToFile, rdMolDraw2D
 from rdkit.Chem.rdchem import Mol
 from rdkit.Chem.rdMolDescriptors import CalcMolFormula
 from rdkit.RDLogger import logger
+import polars as pl
 
 from minedatabase import utils
 from minedatabase.databases import (
@@ -49,6 +50,27 @@ from minedatabase.reactions import transform_all_compounds_with_full
 # Default to no errors
 lg = logger()
 lg.setLevel(4)
+pwd = Path(__file__).parent
+
+compound_type = pl.Enum(categories=["source", "target", "known", "helper", "intermediate"])
+
+compounds_schema = pl.Schema(
+    {
+        "id": pl.String,
+        "smiles": pl.String,
+        "type": compound_type,
+        "name": pl.String,
+    }
+)
+
+expansion_reactions_schema = pl.Schema(
+    {
+        "am_smarts": pl.String,
+        "rule_name": pl.String,
+        "rule_set": pl.String,
+        "rule_template": pl.String,
+    }
+)
 
 class Pickaxe:
     """Class to generate expansions with compounds and reaction rules.
@@ -239,6 +261,10 @@ class Pickaxe:
         if rule_list:
             self._load_operators(rule_list)
 
+        self.known_compounds = pl.read_parquet(
+            pwd / "data" / "known" / "known_compounds.parquet"
+        )
+
         print("\nDone intializing pickaxe object")
         print("----------------------------------------\n")
 
@@ -392,6 +418,12 @@ class Pickaxe:
             infile = open(rule_path)
         elif type(rule_path) == StringIO:
             infile = rule_path
+
+        # Save rule set name
+        if isinstance(rule_path, str):
+            self.rule_set_name = Path(rule_path).stem
+        elif isinstance(rule_path, Path):
+            self.rule_set_name = rule_path.stem
 
         with infile:
             # Get all reaction rules from tsv file and store in dict (rdr)
@@ -859,7 +891,6 @@ class Pickaxe:
                         "Products": [(s, p["_id"]) for s, p in products],
                         "Operators": rxn["Operators"],
                         "SMILES_rxn": rxn_text,
-                        "Operator_aligned_smarts": rxn["Operator_aligned_smarts"],
                         "am_rxn": rxn["am_rxn"],
                     }
 
@@ -1574,6 +1605,74 @@ class Pickaxe:
 
             print(f"Took {time.time() - start_load}")
 
+    def parquet_pickaxe(self, dir_name: str, do_flip: bool = False) -> None:
+        
+        print(f"Writing pickaxe data to parquet files in {'retro' if do_flip else 'forward'} mode")
+        rxn_data = []
+        cpds = []
+        kc_smi2name = dict(zip(self.known_compounds["smiles"], self.known_compounds["name"].to_list()))
+        for cid, cpd in self.compounds.items():
+            _id = cid[1:]
+            cpd_name = cpd.get("ID", None)
+
+            # Assign compound type in this order / hierarchy
+            if cpd['Type'] == "Target Compound":
+                cpd_type = "target"
+            elif cpd['Type'] == "Starting Compound":
+                cpd_type = "source"
+            elif cid[0] == 'X':
+                cpd_type = "helper"
+            elif cpd['SMILES'] in kc_smi2name:
+                cpd_type = "known"
+                cpd_name = kc_smi2name[cpd['SMILES']]
+
+            cpds.append(
+                (
+                    _id,
+                    cpd['SMILES'],
+                    cpd_type,
+                    cpd_name,
+                )
+            )
+
+        for rxn in self.reactions.values():
+            if 'am_rxn' not in rxn:
+                continue
+
+            if do_flip:
+                am_smarts = ">>".join(rxn['am_rxn'].split('>>')[::-1])
+            else:
+                am_smarts = rxn['am_rxn']
+            
+            rule_names = list(rxn['Operators'])
+            rule_templates = [self.operators[rule][1]['SMARTS'] for rule in rule_names]
+            for rn, rt in zip(rule_names, rule_templates):
+                if do_flip:
+                    rt = ">>".join(rt.split('>>')[::-1])
+                    rn = rn + "_reversed"
+                
+                rxn_data.append((am_smarts, rn, self.rule_set_name, rt))
+
+        cpds = pl.DataFrame(
+            cpds,
+            schema=compounds_schema,
+            orient="row",
+        )
+
+        cpds.write_parquet(
+            Path(dir_name) / "compounds.parquet"
+        )
+
+        rxns = pl.DataFrame(
+            rxn_data,
+            schema=expansion_reactions_schema,
+            orient="row",
+        )
+        
+        rxns.write_parquet(
+            Path(dir_name) / "reactions.parquet",
+        )
+
 
 # if __name__ == "__main__":
 #     # A + B test
@@ -1807,9 +1906,13 @@ if __name__ == "__main__":
     pk._add_compound(
         smiles_dict["FADH"], smiles_dict["FADH"], cpd_type="Starting Compound"
     )
+    pk.load_targets(
+        file_dir / "data/test_targets.csv"
+    )
     pk.operators["2.7.1.a"] = default_rule
     pk.transform_all(generations=2)
     print()
+    pk.parquet_pickaxe("/home/stef/pickaxe/tests/data/parquet", do_flip=False)
     # assert len(pk.compounds) == 31
     # assert len(pk.reactions) == 49
     # comp_gens = set([x["Generation"] for x in pk.compounds.values()])

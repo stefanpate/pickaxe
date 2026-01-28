@@ -117,14 +117,8 @@ def _run_reaction(
         atom_counts["H"] -= charge_correction
 
         cpd_returns = [(stoich, cpds[cpd_id]) for cpd_id, stoich in cpd_counter.items()]
-        
-        op_aligned_side = []
-        for s, cpd in cpd_returns:
-            op_aligned_side += [cpd['SMILES']] * s
 
-        op_aligned_side = ".".join(op_aligned_side)
-
-        return cpd_returns, atom_counts, op_aligned_side
+        return cpd_returns, atom_counts
 
     def _gen_compound(mol):
         rkl.DisableLog("rdApp.*")
@@ -177,7 +171,7 @@ def _run_reaction(
 
     try:
         am_rcts, am_pdts = utils.run_reaction_w_atom_mapping(rcts=reactant_mols, rule=rule[0])
-        reactants, reactant_atoms, op_aligned_reactants = _make_half_rxn(reactant_mols, rule[1]["Reactants"])
+        reactants, reactant_atoms = _make_half_rxn(reactant_mols, rule[1]["Reactants"])
         am_rsmi = ".".join([MolToSmiles(m, ignoreAtomMapNumbers=True) for m in am_rcts])
     except BaseException as e:
         print(f"Error running reaction {rule_name}: {e}")
@@ -194,7 +188,7 @@ def _run_reaction(
     for product_mols in am_pdts:
         try:
             am_psmi = ".".join([MolToSmiles(m, ignoreAtomMapNumbers=True) for m in product_mols])
-            products, product_atoms, op_aligned_products = _make_half_rxn(product_mols, rule[1]["Products"], de_am=True)
+            products, product_atoms = _make_half_rxn(product_mols, rule[1]["Products"], de_am=True)
             if not products:
                 continue
 
@@ -222,7 +216,6 @@ def _run_reaction(
                         "Products": [(s, p["_id"]) for s, p in products],
                         "Operators": {rule_name},
                         "SMILES_rxn": rxn_text,
-                        "Operator_aligned_smarts": f"{op_aligned_reactants}>>{op_aligned_products}",
                         "am_rxn": f"{am_rsmi}>>{am_psmi}",
                     }
                 else:
@@ -410,174 +403,3 @@ def transform_all_compounds_with_full(
             print_progress(i, len(compound_smiles))
 
     return new_cpds_master, new_rxns_master
-
-# TODO: Partial operators aren't used... keep here or move?
-# Partial Operators
-# def _transform_ind_compound_with_partial(
-#     coreactant_mols: dict,
-#     coreactant_dict: dict,
-#     operators: dict,
-#     generation: int,
-#     explicit_h: bool,
-#     partial_rules: dict,
-#     compound_smiles: list,
-# ):
-#     # 1. See if rule matches the compound passed
-#     #   (rule from partial_rules dict keys)
-#     # 2. If match apply transform_ind_compound_with_full to each
-#     def generate_partial_mols(partial_rule):
-#         def gen_mol(smi):
-#             mol = MolFromSmiles(smi)
-#             mol = RemoveHs(mol)
-#             Kekulize(mol, clearAromaticFlags=True)
-#             if explicit_h:
-#                 mol = AddHs(mol)
-#             return mol
-
-#         rule_reactants = operators[partial_rule["rule"]][1]["Reactants"]
-#         cofactor = [False if r == "Any" else True for r in rule_reactants]
-#         reactant_mols = []
-#         for is_cofactor, smi in zip(cofactor, partial_rule["reactants"]):
-#             if is_cofactor:
-#                 reactant_mols.append(coreactant_mols[smi][0])
-#             elif smi == "SMARTS_match":
-#                 reactant_mols.append(gen_mol(compound_smiles))
-#             else:
-#                 # These reactions already happen with any;any
-# if (
-#     utils.get_compound_hash(smi)
-#     != utils.get_compound_hash(compound_smiles)
-# ):
-#                     reactant_mols.append(gen_mol(smi))
-#                 else:
-#                     return None
-#         return reactant_mols
-
-#     local_cpds = dict()
-#     local_rxns = dict()
-
-#     mol = MolFromSmiles(compound_smiles)
-#     mol = RemoveHs(mol)
-#     if not mol:
-#         print(f"Unable to parse: {compound_smiles}")
-#         return None
-#     Kekulize(mol, clearAromaticFlags=True)
-#     if explicit_h:
-#         mol = AddHs(mol)
-#     # Apply reaction rules to prepared compound
-
-#     # run through the single compound operatores
-#     for ind_SMARTS, rules in partial_rules.items():
-#         # does mol match vs smiles match change things?
-#         if utils.QuickSmartsMatch(compound_smiles, ind_SMARTS):
-#             for partial_rule in rules:
-#                 # Perform chemical reaction on reactants for each rule
-#                 # try:
-#                 rule_name = partial_rule["rule_reaction"].split("_")[0]
-#                 rule = operators[partial_rule["rule"]]
-#                 reactant_mols = generate_partial_mols(partial_rule)
-#                 if reactant_mols:
-#                     generated_cpds, generated_rxns = _run_reaction(
-#                         rule_name,
-#                         rule,
-#                         reactant_mols,
-#                         coreactant_mols,
-#                         coreactant_dict,
-#                         local_cpds,
-#                         local_rxns,
-#                         generation,
-#                         explicit_h,
-#                     )
-
-#                     local_cpds.update(generated_cpds)
-#                     for rxn, vals in generated_rxns.items():
-#                         if rxn in local_rxns:
-#                             if "Partial Operators" in local_rxns[rxn]:
-#                                 local_rxns[rxn]["Partial Operators"].update(
-#                                     [partial_rule["rule_reaction"]]
-#                                 )
-#                             else:
-#                                 local_rxns[rxn]["Partial Operators"] = set(
-#                                     [partial_rule["rule_reaction"]]
-#                                 )
-#     return local_cpds, local_rxns
-
-
-# def _transform_all_compounds_with_partial(
-#     compound_smiles,
-#     coreactants,
-#     coreactant_dict,
-#     operators,
-#     generation,
-#     explicit_h,
-#     processes,
-#     partial_rules,
-# ):
-#     """
-#     Stage partial operator reactions.
-
-#     This function accepts in a list of cpds (cpd_list) and runs the
-#     transformation in parallel of these.
-#     """
-
-#     def print_progress(done, total):
-#         # Use print_on to print % completion roughly every 2.5 percent
-#         # Include max to print no more than once per compound (e.g. if
-#         # less than 20 compounds)
-#         print_on = max(round(0.1 * total), 1)
-#         if not done % print_on:
-#             print(
-#                 f"Generation {generation}: {round(done / total * 100)}"
-#                 " percent complete"
-#             )
-
-#     # First transform
-#     new_cpds_master = {}
-#     new_rxns_master = {}
-
-#     transform_compound_partial = partial(
-#         _transform_ind_compound_with_partial,
-#         coreactants,
-#         coreactant_dict,
-#         operators,
-#         generation,
-#         explicit_h,
-#         partial_rules,
-#     )
-#     # par loop
-#     if processes > 1:
-#         chunk_size = 1
-#         # print(f'Chunk size = {chunk_size}')
-#         pool = multiprocessing.Pool(processes=processes)
-#         for i, res in enumerate(
-#             pool.imap_unordered(transform_compound_partial, compound_smiles,
-#               chunk_size)
-#         ):
-#             new_cpds, new_rxns = res
-#             new_cpds_master.update(new_cpds)
-
-#             # Need to check if reactions already exist to update operators list
-#             for rxn, rxn_dict in new_rxns.items():
-#                 if rxn in new_rxns_master:
-#                     new_rxns_master[rxn]["Operators"].union(rxn_dict["Operators"])
-#                 else:
-#                     new_rxns_master.update({rxn: rxn_dict})
-#             print_progress(i, len(compound_smiles))
-
-#     else:
-#         for i, smiles in enumerate(compound_smiles):
-#             new_cpds, new_rxns = transform_compound_partial(smiles)
-#             # new_cpds as cpd_id:cpd_dict
-#             # new_rxns as rxn_id:rxn_dict
-#             new_cpds_master.update(new_cpds)
-#             # Need to check if reactions already exist to update operators list
-#             for rxn, rxn_dict in new_rxns.items():
-#                 if rxn in new_rxns_master:
-#                     new_rxns_master[rxn]["Partial Operators"] = new_rxns_master[rxn][
-#                         "Partial Operators"
-#                     ].union(rxn_dict["Partial Operators"])
-#                 else:
-#                     new_rxns_master.update({rxn: rxn_dict})
-#             print_progress(i, len(compound_smiles))
-
-#     return new_cpds_master, new_rxns_master
