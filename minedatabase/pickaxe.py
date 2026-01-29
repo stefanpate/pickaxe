@@ -1626,6 +1626,9 @@ class Pickaxe:
             elif cpd['SMILES'] in kc_smi2name:
                 cpd_type = "known"
                 cpd_name = kc_smi2name[cpd['SMILES']]
+            else:
+                cpd_type = "intermediate"
+
 
             cpds.append(
                 (
