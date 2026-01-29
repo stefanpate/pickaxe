@@ -5,6 +5,7 @@ description = "The MINE Database contains code for generating (through Pickaxe) 
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "ergochemics>=0.1.2",
     "lxml>=5.4.0",
     "pandas>=2.2.3",
     "polars>=1.37.1",

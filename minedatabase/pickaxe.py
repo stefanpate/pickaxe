@@ -35,6 +35,7 @@ from rdkit.Chem.rdchem import Mol
 from rdkit.Chem.rdMolDescriptors import CalcMolFormula
 from rdkit.RDLogger import logger
 import polars as pl
+from ergochemics.standardize import hash_molecule
 
 from minedatabase import utils
 from minedatabase.databases import (
@@ -1612,7 +1613,7 @@ class Pickaxe:
         cpds = []
         kc_smi2name = dict(zip(self.known_compounds["smiles"], self.known_compounds["name"].to_list()))
         for cid, cpd in self.compounds.items():
-            _id = cid[1:]
+            id = hash_molecule(cpd['SMILES'])
             cpd_name = cpd.get("ID", None)
 
             # Assign compound type in this order / hierarchy
@@ -1628,7 +1629,7 @@ class Pickaxe:
 
             cpds.append(
                 (
-                    _id,
+                    id,
                     cpd['SMILES'],
                     cpd_type,
                     cpd_name,
