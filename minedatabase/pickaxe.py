@@ -1629,6 +1629,10 @@ class Pickaxe:
             else:
                 cpd_type = "intermediate"
 
+            if do_flip and cpd_type == "source":
+                cpd_type = "target"
+            elif do_flip and cpd_type == "target":
+                cpd_type = "source"
 
             cpds.append(
                 (
