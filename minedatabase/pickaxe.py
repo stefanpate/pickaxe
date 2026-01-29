@@ -52,7 +52,7 @@ lg = logger()
 lg.setLevel(4)
 pwd = Path(__file__).parent
 
-compound_type = pl.Enum(categories=["source", "target", "known", "helper", "intermediate"])
+compound_type = pl.Enum(categories=["source", "target", "known", "helper", "intermediate", "checkpoint"])
 
 compounds_schema = pl.Schema(
     {
