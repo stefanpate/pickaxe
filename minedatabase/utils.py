@@ -664,11 +664,14 @@ def run_reaction_w_atom_mapping(
                 props = atom.GetPropsAsDict()
                 rct_atom_idx = props.get('react_atom_idx')
                 rct_idx = props.get('reactant_idx')
+                old_am = props.get('old_mapno')
+
+                if rct_idx is None and old_am is None:
+                    continue
                 
                 if rct_idx is None:
-                    old_am = props.get('old_mapno')
                     rct_idx = rule_map_num_to_rct_idx[old_am]
-
+                    
                 atom.SetAtomMapNum(rct_atom_idx + am_offsets[rct_idx])
 
     return rcts, outputs
