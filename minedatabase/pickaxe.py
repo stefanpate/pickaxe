@@ -603,6 +603,10 @@ class Pickaxe:
         # rules later on)
         if self.neutralise:
             mol = utils.neutralise_charges(mol)
+
+        if self.explicit_h:
+            mol = AddHs(mol)
+        
         return mol
 
     def _gen_compound(
