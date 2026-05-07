@@ -208,6 +208,7 @@ class Pickaxe:
         self.filter_after_final_gen = filter_after_final_gen
         self.prune_between_gens = prune_between_gens
         self.enforce_atom_balance = enforce_atom_balance
+        self.block_inorganic = block_inorganic
         # database info
         self.mongo_uri = mongo_uri
         # partial_operators
