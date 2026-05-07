@@ -181,6 +181,7 @@ class Pickaxe:
         react_targets: bool = True,
         filter_after_final_gen: bool = True,
         prune_between_gens: bool = False,
+        enforce_atom_balance: bool = True
     ) -> None:
         # Main pickaxe properties
         self.operators = {}
@@ -205,6 +206,7 @@ class Pickaxe:
         self.react_targets = react_targets
         self.filter_after_final_gen = filter_after_final_gen
         self.prune_between_gens = prune_between_gens
+        self.enforce_atom_balance = enforce_atom_balance
         # database info
         self.mongo_uri = mongo_uri
         # partial_operators
@@ -1523,6 +1525,7 @@ class Pickaxe:
             self.explicit_h,
             self.kekulize,
             processes,
+            self.enforce_atom_balance
         )
 
         update_cpds_rxns(new_cpds, new_rxns)

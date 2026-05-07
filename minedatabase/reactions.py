@@ -51,6 +51,7 @@ def _run_reaction(
     local_rxns: dict,
     generation: int,
     explicit_h: bool,
+    enforce_atom_balance: bool
 ) -> Tuple[dict, dict]:
     """Apply reaction rules to a list of compounds.
 
@@ -202,7 +203,7 @@ def _run_reaction(
             else:
                 is_atom_balanced = True
 
-            if is_atom_balanced:
+            if not enforce_atom_balance or (enforce_atom_balance and is_atom_balanced):
                 for _, cpd_dict in products:
                     if cpd_dict["_id"].startswith("C"):
                         local_cpds.update({cpd_dict["_id"]: cpd_dict})
@@ -235,6 +236,7 @@ def _transform_ind_compound_with_full(
     explicit_h: bool,
     kekulize: bool,
     compound_smiles: list,
+    enforce_atom_balance: bool
 ) -> Tuple[dict, dict]:
     """Transform a compound with the full reaction operators.
 
@@ -294,6 +296,7 @@ def _transform_ind_compound_with_full(
             local_rxns,
             generation,
             explicit_h,
+            enforce_atom_balance
         )
 
         local_cpds.update(generated_cpds)
@@ -313,6 +316,7 @@ def transform_all_compounds_with_full(
     explicit_h: bool,
     kekulize: bool,
     processes: int,
+    enforce_atom_balance: bool
 ) -> Tuple[dict, dict]:
     """Transform compounds given a list of rules.
 
@@ -367,6 +371,7 @@ def transform_all_compounds_with_full(
         generation,
         explicit_h,
         kekulize,
+        enforce_atom_balance
     )
     # par loop
     if processes > 1:
