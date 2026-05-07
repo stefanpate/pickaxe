@@ -235,8 +235,8 @@ def _transform_ind_compound_with_full(
     generation: int,
     explicit_h: bool,
     kekulize: bool,
+    enforce_atom_balance: bool,
     compound_smiles: list,
-    enforce_atom_balance: bool
 ) -> Tuple[dict, dict]:
     """Transform a compound with the full reaction operators.
 
