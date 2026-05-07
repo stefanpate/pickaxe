@@ -181,7 +181,8 @@ class Pickaxe:
         react_targets: bool = True,
         filter_after_final_gen: bool = True,
         prune_between_gens: bool = False,
-        enforce_atom_balance: bool = True
+        enforce_atom_balance: bool = True,
+        block_inorganic: bool = True
     ) -> None:
         # Main pickaxe properties
         self.operators = {}
@@ -340,7 +341,7 @@ class Pickaxe:
                 smi = MolToSmiles(mol, True)
                 cpd_name = cpd_dict[id_field]
                 # Do not operate on inorganic compounds
-                if "C" in smi or "c" in smi:
+                if not self.block_inorganic or ("C" in smi or "c" in smi):
                     # resolve potential tautomers and choose first one
                     if "n" in smi:
                         smi = utils.postsanitize_smiles([smi])[0][0]
