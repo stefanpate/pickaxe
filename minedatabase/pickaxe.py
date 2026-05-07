@@ -476,22 +476,17 @@ class Pickaxe:
         if skipped:
             print(f"WARNING: {skipped} rules skipped")
 
-    def set_starters_as_coreactants(self, known_reactions: list[dict] = [], subset: list[str] = []):
+    def set_starters_as_coreactants(self, subset: list[str] = []):
         '''
         Designate starting molecules as coreactants to apply multisubstrate operators.
         self.operators and self.coreactants are both modified.
 
         Args
         -----
-        known_reactions:list[dict] (Optional)
-            Known reactions with {'smarts': rule-aligned smarts, 'rules': [rule names that recap. this reaction]}.
-            Default is empty list which will result in only enforcing SMARTS template match and 'Any' role, 
-            NOT requirement of exact molecule having played that exact role in a known reaction.
         subset:list
             If provided, only starters with these names will be considered as coreactants
         '''
         multi_anys = {k: v for k, v in self.operators.items() if Counter(v[1]['Reactants'])['Any'] > 1}
-        known_roles = self._get_known_roles(known_reactions) if known_reactions else {}
         candidates = [cpd for cpd in self.compounds.values() if cpd['Type'] == 'Starting Compound']
         
         if subset:
@@ -501,6 +496,9 @@ class Pickaxe:
             new_coreactant = f"{c['ID'].upper()}_COREACTANT"
             smi = c['SMILES']
             mol = MolFromSmiles(smi)
+
+            if self.explicit_h:
+                mol = AddHs(mol)
             
             for ma_op in multi_anys.values():
                 new_rule_idx = 0
@@ -514,44 +512,17 @@ class Pickaxe:
                     if not mol.HasSubstructMatch(patt):
                         continue
 
-                    known_role_fillers = known_roles.get(rule_name, [])
-                        
-                    # if not enforcing known roles or if there is known role match
-                    if not known_roles or (known_role_fillers and smi in known_role_fillers[i]):
-                        # Add new rule
-                        new_rule_name = f"{rule_name}_{new_rule_idx}"
-                        self.operators[new_rule_name] = ma_op
-                        self.operators[new_rule_name][1]['Name'] = new_rule_name
-                        self.operators[new_rule_name][1]["Reactants"][i] = new_coreactant
-                        self.operators[new_rule_name][1]['_id'] = new_rule_name
-                        new_rule_idx += 1
+                    # Add new rule
+                    new_rule_name = f"{rule_name}_{new_rule_idx}"
+                    self.operators[new_rule_name] = ma_op
+                    self.operators[new_rule_name][1]['Name'] = new_rule_name
+                    self.operators[new_rule_name][1]["Reactants"][i] = new_coreactant
+                    self.operators[new_rule_name][1]['_id'] = new_rule_name
+                    new_rule_idx += 1
 
-                        # Add new coreactant
-                        if new_coreactant not in self.coreactants:
-                            self.coreactants[new_coreactant] = (mol, c['_id'])
-
-
-    def _get_known_roles(self, known_reactions: list[dict]) -> dict:
-        '''
-        Converts known reactions to rule-indexed lists of 
-        length = # reactants with set of molecules known to
-        play role of operator reactant i at ith position
-        '''
-        tmp = {}
-        for rxn in known_reactions:
-            rcts = rxn['smarts'].split('>>')[0].split('.') # TODO: standardize smiles / smarts
-            for rule in rxn['rules']:
-                if rule not in tmp:
-                    tmp[rule] = [[] for _ in range(len(rcts))]
-
-                for i, smi in enumerate(rcts):
-                    tmp[rule][i].append(smi)
-
-        known_roles = {}
-        for k, v in tmp.items():
-            known_roles[k] = tuple([set(elt) for elt in v])
-
-        return known_roles
+                    # Add new coreactant
+                    if new_coreactant not in self.coreactants:
+                        self.coreactants[new_coreactant] = (mol, c['_id'])
 
     def _mol_from_dict(self, input_dict: dict) -> Mol:
         """Generate an RDKit mol object from a dictionary.
@@ -604,9 +575,6 @@ class Pickaxe:
         if self.neutralise:
             mol = utils.neutralise_charges(mol)
 
-        if self.explicit_h:
-            mol = AddHs(mol)
-        
         return mol
 
     def _gen_compound(
